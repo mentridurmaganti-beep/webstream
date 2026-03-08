@@ -1,7 +1,7 @@
 import "./globals.css";
 import Script from "next/script";
 
-const TELEGRAM_LINK = "https://t.me/+d9TcoaiEqwQ3M2U1";
+const TELEGRAM_LINK = "https://t.me/nontonaja321";
 
 export const metadata = {
   title: "STREAMINGKU - Nonton Film Gratis",
