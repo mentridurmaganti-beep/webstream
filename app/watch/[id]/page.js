@@ -8,7 +8,7 @@ const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJ
 const supabase = createClient(SB_URL, SB_KEY)
 
 // LINK TELEGRAM KAMU (Ganti dengan link channel kamu)
-const TELEGRAM_CHANNEL = "https://t.me/+d9TcoaiEqwQ3M2U1" 
+const TELEGRAM_CHANNEL = "https://t.me/nontonaja321" 
 
 export default function WatchPage() {
   const { id } = useParams()
