@@ -37,24 +37,52 @@ export default function Admin() {
     try {
       const res = await fetch('/api/dood');
       const resData = await res.json();
+      
+      // Validasi Data API
+      if (!resData.result || !resData.result.files) {
+         return alert("Gagal: Data API kosong. Pastikan API Key di /api/dood/route.js sudah benar dan akun Doodstream ada isinya.");
+      }
+
       if (resData.status === 200) {
         const { data: existing } = await supabase.from('videos').select('url');
         const existingUrls = existing.map(v => v.url);
+        
+        // Filter video baru (yang belum ada di database)
         const newFiles = resData.result.files.filter(f => !existingUrls.includes(`https://doodstream.com/e/${f.file_code}`));
-        if (newFiles.length === 0) return alert("Semua video terbaru sudah ada!");
+        
+        if (newFiles.length === 0) return alert("Semua video terbaru sudah ada di database!");
+        
         const limitedFiles = newFiles.slice(0, limitSync);
         const toInsert = limitedFiles.map(f => ({
           title: f.title,
           url: `https://doodstream.com/e/${f.file_code}`,
           thumbnail: `https://thumbcdn.com/snaps/${f.file_code}.jpg`
         }));
-        await supabase.from('videos').insert(toInsert);
+
+        const { error } = await supabase.from('videos').insert(toInsert);
+        if (error) throw error;
+
         alert(`Berhasil sinkron ${limitedFiles.length} video baru!`);
         fetchVideos();
       }
     } catch (err) { alert("Error Sync: " + err.message); }
     finally { setLoading(false); }
   }
+
+  // --- FITUR HAPUS SEMUA (FITUR BARU) ---
+  const handleHapusSemua = async () => {
+    if (confirm("⚠️ PERINGATAN: Hapus SEMUA video dari database? Tindakan ini tidak bisa dibatalkan.")) {
+      setLoading(true);
+      const { error } = await supabase.from('videos').delete().neq('id', 0); // Menghapus semua baris
+      if (!error) {
+        alert("Database telah dikosongkan.");
+        fetchVideos();
+      } else {
+        alert("Gagal menghapus: " + error.message);
+      }
+      setLoading(false);
+    }
+  };
 
   const handleSimpan = async (e) => {
     e.preventDefault();
@@ -83,7 +111,6 @@ export default function Admin() {
     alert("Link nonton berhasil disalin!");
   };
 
-  // --- FITUR BARU: MULTI SELECT & BULK COPY ---
   const toggleSelect = (id) => {
     setSelectedIds(prev => 
       prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
@@ -100,24 +127,21 @@ export default function Admin() {
 
   const handleBulkCopy = (withTitle = true) => {
     if (selectedIds.length === 0) return alert("Pilih video dulu!");
-    
     const selectedVideos = videos.filter(v => selectedIds.includes(v.id));
     const origin = window.location.origin;
-    
     const textToCopy = selectedVideos.map(v => {
       const link = `${origin}/watch/${v.id}`;
       return withTitle ? `${v.title}\n${link}` : link;
     }).join('\n\n');
-
     navigator.clipboard.writeText(textToCopy);
-    alert(`Berhasil salin ${selectedIds.length} video (${withTitle ? 'Judul + Link' : 'Link Saja'})`);
+    alert(`Berhasil salin ${selectedIds.length} video!`);
   };
 
   if (!isLoggedIn) return null;
 
   return (
     <div style={{ padding: '20px', background: '#000', color: '#fff', minHeight: '100vh', fontFamily: 'sans-serif' }}>
-      <h1>🛠 Admin Panel v5.3</h1>
+      <h1>🛠 Admin Panel v5.4</h1>
       
       <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', marginBottom: '30px' }}>
         <div style={{ flex: 1, minWidth: '300px', background: '#111', padding: '20px', borderRadius: '10px', border: editId ? '2px solid #3498db' : 'none' }}>
@@ -133,10 +157,12 @@ export default function Admin() {
           <h3>🚀 Tarik Video API</h3>
           <input type="number" value={limitSync} onChange={e => setLimitSync(e.target.value)} style={{ width: '100%', padding: '10px', marginTop: '5px', color: '#000', borderRadius: '5px' }} />
           <button onClick={syncDoodstream} disabled={loading} style={{ width: '100%', padding: '15px', background: '#3498db', color: '#fff', border: 'none', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer', marginTop: '10px' }}>{loading ? "MENARIK DATA..." : `SYNC ${limitSync} VIDEO BARU`}</button>
+          
+          {/* TOMBOL BERSIHKAN DATABASE */}
+          <button onClick={handleHapusSemua} disabled={loading} style={{ width: '100%', padding: '10px', background: 'transparent', color: '#ff4d4d', border: '1px solid #ff4d4d', borderRadius: '5px', cursor: 'pointer', marginTop: '15px', fontSize: '0.8rem' }}>🗑 KOSONGKAN DATABASE</button>
         </div>
       </div>
 
-      {/* --- PANEL BULK COPY (STICKY) --- */}
       <div style={{ background: '#222', padding: '15px', borderRadius: '10px', marginBottom: '20px', position: 'sticky', top: '10px', zIndex: 100, border: '1px solid #444', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
         <div>
           <button onClick={selectAll} style={{ padding: '8px 15px', background: '#444', color: '#fff', border: 'none', borderRadius: '5px', cursor: 'pointer', marginRight: '10px' }}>
@@ -153,39 +179,19 @@ export default function Admin() {
       <h3>Daftar Koleksi ({videos.length}):</h3>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '15px' }}>
         {videos.map(v => (
-          <div 
-            key={v.id} 
-            onClick={() => toggleSelect(v.id)}
-            style={{ 
-              background: '#111', 
-              padding: '10px', 
-              borderRadius: '8px', 
-              border: selectedIds.includes(v.id) ? '2px solid #27ae60' : '1px solid #222',
-              cursor: 'pointer',
-              position: 'relative'
-            }}
-          >
-            {/* Checkbox Visual */}
+          <div key={v.id} onClick={() => toggleSelect(v.id)} style={{ background: '#111', padding: '10px', borderRadius: '8px', border: selectedIds.includes(v.id) ? '2px solid #27ae60' : '1px solid #222', cursor: 'pointer', position: 'relative' }}>
             <div style={{ position: 'absolute', top: '5px', left: '5px', zIndex: 5, width: '20px', height: '20px', background: selectedIds.includes(v.id) ? '#27ae60' : '#fff', border: '1px solid #000', borderRadius: '3px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
               {selectedIds.includes(v.id) && <span style={{ color: '#fff', fontSize: '12px' }}>✓</span>}
             </div>
-
             <div style={{ width: '100%', height: '110px', background: '#000', borderRadius: '5px', overflow: 'hidden', marginBottom: '10px' }}>
                 <img src={`https://images.weserv.nl/?url=${encodeURIComponent(v.thumbnail)}&w=300`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => e.target.src="https://via.placeholder.com/200x110"} />
             </div>
             <p style={{ fontSize: '0.75rem', height: '2.5em', overflow: 'hidden', margin: '5px 0' }}>{v.title}</p>
-            
             <div style={{ display: 'flex', gap: '5px', marginBottom: '5px' }} onClick={(e) => e.stopPropagation()}>
               <button onClick={() => handleEditKlik(v)} style={{ flex: 1, padding: '7px', background: '#f1c40f', border: 'none', cursor: 'pointer', borderRadius: '4px', fontWeight: 'bold', fontSize: '0.7rem' }}>Edit</button>
               <button onClick={() => handleHapus(v.id)} style={{ flex: 1, padding: '7px', background: 'red', color: 'white', border: 'none', cursor: 'pointer', borderRadius: '4px', fontWeight: 'bold', fontSize: '0.7rem' }}>Hapus</button>
             </div>
-            
-            <button 
-              onClick={(e) => { e.stopPropagation(); handleSalinLink(v.id); }} 
-              style={{ width: '100%', padding: '7px', background: '#3498db', color: '#fff', border: 'none', cursor: 'pointer', borderRadius: '4px', fontWeight: 'bold', fontSize: '0.7rem' }}
-            >
-              🔗 SALIN LINK
-            </button>
+            <button onClick={(e) => { e.stopPropagation(); handleSalinLink(v.id); }} style={{ width: '100%', padding: '7px', background: '#3498db', color: '#fff', border: 'none', cursor: 'pointer', borderRadius: '4px', fontWeight: 'bold', fontSize: '0.7rem' }}>🔗 SALIN LINK</button>
           </div>
         ))}
       </div>
