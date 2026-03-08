@@ -12,17 +12,22 @@ export default function RootLayout({ children }) {
   return (
     <html lang="id">
       <head>
+        {/* OPTIMASI KONEKSI */}
+        <link rel="dns-prefetch" href="https://pl28873340.effectivegatecpm.com" />
+        <link rel="dns-prefetch" href="https://s10.histats.com" />
+        <link rel="preconnect" href="https://pl28873340.effectivegatecpm.com" crossOrigin="anonymous" />
+
         {/* IKLAN ADSTERRA */}
         <Script 
           src="https://pl28873340.effectivegatecpm.com/0d/1c/23/0d1c23e6502f1d59ee6705b955e051c6.js" 
-          strategy="afterInteractive" 
+          strategy="beforeInteractive" 
         />
 
-        {/* HISTATS - ID: 5006689 */}
+        {/* HISTATS - ID BARU: 5013193 */}
         <Script id="histats-async" strategy="afterInteractive">
           {`
             var _Hasync= _Hasync|| [];
-            _Hasync.push(['Histats.start', '1,5006689,4,0,0,0,00010000']);
+            _Hasync.push(['Histats.start', '1,5013193,4,0,0,0,00010000']);
             _Hasync.push(['Histats.fasi', '1']);
             _Hasync.push(['Histats.track_hits', '']);
             (function() {
@@ -71,10 +76,10 @@ export default function RootLayout({ children }) {
           </a>
         </div>
 
-        {/* NOSCRIPT BACKUP UNTUK HISTATS */}
+        {/* NOSCRIPT BACKUP UNTUK HISTATS ID: 5013193 */}
         <noscript>
           <a href="/" target="_blank">
-            <img src="//sstatic1.histats.com/0.gif?5006689&101" alt="histats counter" border="0" />
+            <img src="//sstatic1.histats.com/0.gif?5013193&101" alt="histats counter" border="0" />
           </a>
         </noscript>
       </body>
