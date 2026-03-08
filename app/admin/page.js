@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js'
 
 const SB_URL = "https://cegcvmprkfxniiiamaej.supabase.co"
 const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNlZ2N2bXBya2Z4bmlpaWFtYWVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5NjAyMjQsImV4cCI6MjA4ODUzNjIyNH0.5uazZ6f7A5hvymfr43IsEujr-I6Su8kJwB3P9n_XLGw"
-const PASSWORD_ADMIN = "130903" 
+const PASSWORD_ADMIN = "1234" 
 const supabase = createClient(SB_URL, SB_KEY)
 
 export default function Admin() {
